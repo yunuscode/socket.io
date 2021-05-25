@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+    <title>Document</title>
+</head>
+<body>
+    <section class="mt-4 pt-4">
+        <div class="container">
+            <h1 class="text-center">Chat Application</h1>
+        </div>
+    </section>
+    <section class="mt-4">
+        <div class="container d-flex justify-content-center">
+            <form id="sign-form" class="w-50">
+                <input id="name_form" type="text" required class="form-control" placeholder="Your name">
+            </form>
+        </div>
+    </section>
+    
+    <section id="chat_content" class="d-none">
+        <div class="container mt-4">
+            <div class="row g-2">
+                <div class="col-lg-6">
+                    <h2>Members</h2>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody">
+                            
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-lg-6">
+                    <h2>Chat</h2>
+                    <form id="chat_form">
+                        <textarea class="form-control" id="message_text"></textarea>
+                        <button class="btn mt-2 btn-primary btn-large w-100">Jo'natish</button>
+                    </form>
+                    <ul id="messages" class="list-unstyled">
+                        
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" crossorigin="anonymous"></script>
+    <script src="/socket/socket.io.js"></script>
+    <script>
+        let socket = io();
+        
+        const formElement = document.querySelector("#sign-form")
+        formElement.addEventListener('submit', event => {
+            event.preventDefault()
+            
+            if(name_form.value.length <= 0){
+                name_form.classList.add('border', 'border-danger')
+                return 0
+            }
+            
+            name_form.classList.remove('border', 'border-danger')
+            
+            socket.emit('sign', {
+                name: name_form.value
+            })
+            
+            socket.on('logged', data => {
+                name_form.disabled = true
+                chat_content.classList.remove('d-none')
+                for(let user of data){
+                    const newTrElement = document.createElement('tr')
+                    const newTdElement = document.createElement("td")
+                    newTdElement.textContent = user.name
+                    newTrElement.dataset.userId = user.id
+                    newTrElement.appendChild(newTdElement)
+                    tbody.appendChild(newTrElement)
+                }
+            })
+            
+            socket.on('new_member', data => {
+                const newTrElement = document.createElement('tr')
+                const newTdElement = document.createElement("td")
+                newTdElement.textContent = data.name
+                newTrElement.dataset.userId = data.id
+                newTrElement.appendChild(newTdElement)
+                tbody.appendChild(newTrElement)
+                // console.log(data, "Yangi a'zi");
+            })
+            
+            socket.on('left_member', data => {
+                const element = document.querySelector(`[data-user-id='${data.id}']`)
+                if(element){
+                    element.remove()
+                }
+                // console.log(data, "Yangi a'zi");
+            })
+            
+            
+            
+        })
+        
+        
+        chat_form.addEventListener('submit', event => {
+            event.preventDefault()
+            
+            if(message_text.value.length <= 0 && message_text.value.length > 256){
+                message_text.classList.add('border','border-danger')
+                return 0
+            }
+            
+            message_text.classList.remove('border','border-danger')
+            
+            socket.emit('new_message', {
+                message: message_text.value
+            })
+            
+            
+            messages.innerHTML = `<li class="my-2">
+                <div class="card">
+                    <div class="card-header">${name_form.value}</div>
+                    <div class="card-body">${message_text.value}</div>
+                </div>
+            </li>` + messages.innerHTML
+            
+            
+            
+            
+        })
+
+        socket.on('new_message', data => {
+             messages.innerHTML = `<li class="my-2">
+                <div class="card">
+                    <div class="card-header">${data.owner}</div>
+                    <div class="card-body">${data.message}</div>
+                </div>
+            </li>` + messages.innerHTML
+        })
+        // socket.emit('message', "Salom dunyo")
+        // console.log("Message ketdi");
+        
+        // socket.on('message', message => {
+            //     console.log(message);
+            // })
+        </script>
+    </body>
+    </html>
